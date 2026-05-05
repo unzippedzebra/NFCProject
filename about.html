@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — an NFC sharing project</title>
+  <meta name="description" content="Background, design values, and current state of the NFC kiosk project.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span><span class="mark">◉</span> every tap</span>
+      <span class="meta">an nfc sharing project</span>
+    </a>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html" class="active">About</a></li>
+        <li><a href="deck.html">Slide Deck</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" style="padding-bottom: 2rem;">
+    <div class="wrap narrow">
+      <div class="eyebrow reveal reveal-1">About the project</div>
+      <h1 class="display reveal reveal-2" style="font-size: clamp(2rem, 6vw, 3.6rem);">
+        A kiosk for trading follows<br>without trading <em>data.</em>
+      </h1>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap narrow prose">
+      <div class="block-label"><span class="num">01</span> The premise</div>
+
+      <p>
+        At conferences, fairs, and tabling events, the moment of "let's connect"
+        usually collapses into fumbling — typing handles into someone else's
+        phone, scanning a QR code in poor light, or trading a paper card that
+        will be forgotten by Tuesday.
+      </p>
+
+      <p>
+        This is a small kiosk that lives on a table at these events. A visitor
+        walks up. They tell the operator which platform they want to share —
+        Instagram, Bluesky, LinkedIn, or a custom URL — and type their handle.
+        A few seconds later, an NFC-enabled keychain on the counter is written
+        with their profile URL. They hand it to a new contact. That person taps
+        it to their phone. The profile opens. They follow.
+      </p>
+
+      <div class="callout">
+        It's the universality of tap-to-pay, applied to the small social
+        ritual of "follow me."
+      </div>
+
+      <h3>Why a dedicated device?</h3>
+      <p>
+        A web app could in theory write NFC tags from a phone, but Web NFC is
+        spotty across iOS, requires installs and permissions, and pushes the
+        cognitive load onto the visitor. A small physical kiosk, run by a
+        present operator, lets the visitor focus on a single decision —
+        <em>which profile do you want to share?</em> — and walk away with a
+        keychain that just works.
+      </p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap narrow prose">
+      <div class="block-label"><span class="num">02</span> Design values</div>
+      <h2 class="section-title">Privacy is architectural, not a setting.</h2>
+
+      <p>
+        The project's commitments are baked into the system, not toggled in a
+        menu. Three rules drive the design:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Nothing is logged.</strong> Handles and URLs live in memory
+          just long enough to write a tag, then are discarded. No file, no
+          database, no telemetry.
+        </li>
+        <li>
+          <strong>No internet dependency.</strong> The kiosk does not phone
+          home. It does not need the venue Wi-Fi. It works in a basement.
+        </li>
+        <li>
+          <strong>Walk-up usable.</strong> A visitor with no instructions
+          should still get to a working tag. The interface assumes a present
+          operator, but tries not to need one.
+        </li>
+      </ul>
+
+      <p>
+        A future <em>Business Order Mode</em> is sketched into the architecture
+        for paid commercial jobs (locked tags, bulk writes, optional logging
+        with tag UIDs) — but it requires explicit operator opt-in. The default
+        path stays private.
+      </p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap narrow prose">
+      <div class="block-label"><span class="num">03</span> The build</div>
+      <h2 class="section-title">From breadboard to kiosk.</h2>
+
+      <p>
+        It began on an Arduino with a 16×2 character LCD. It moved through
+        several platform iterations as the requirements grew — on-device
+        platform list, Unicode handles, screen-based UI — and now runs on a
+        Raspberry Pi 4 with a small HDMI display in Chromium kiosk mode. A
+        Flask + SocketIO backend talks to a USB PN532 NFC reader and listens
+        to any standard USB keyboard for input.
+      </p>
+
+      <table class="spec-table">
+        <tr><td>Compute</td><td>Raspberry Pi 4</td></tr>
+        <tr><td>Power</td><td>PiSugar 3 Plus (portable)</td></tr>
+        <tr><td>NFC reader</td><td>USB PN532 (CH340 UART bridge)</td></tr>
+        <tr><td>Input</td><td>Any USB keyboard via evdev</td></tr>
+        <tr><td>Display</td><td>5–7" HDMI / DSI (in evaluation)</td></tr>
+        <tr><td>Stack</td><td>Python · Flask · SocketIO · nfcpy · HTML/CSS/JS</td></tr>
+        <tr><td>OS</td><td>Raspberry Pi OS · Chromium kiosk · systemd</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap narrow prose">
+      <div class="block-label"><span class="num">04</span> What's next</div>
+      <ul>
+        <li>Resolve current Phase 2 web UI hardware integration.</li>
+        <li>Finalize the small-screen responsive layout.</li>
+        <li>Settle the display hardware decision (PiSugar compatibility constrains options).</li>
+        <li>Run supervised tabling sessions and gather usability feedback.</li>
+        <li>Sketch a phone-as-input fallback for tabling configurations without a dedicated screen.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>© Lee Wylie · An NFC sharing project</div>
+    <div><a href="contact.html">Get in touch →</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

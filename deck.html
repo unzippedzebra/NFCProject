@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide Deck — an NFC sharing project</title>
+  <meta name="description" content="The project slide deck.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span><span class="mark">◉</span> every tap</span>
+      <span class="meta">an nfc sharing project</span>
+    </a>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="deck.html" class="active">Slide Deck</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" style="padding-bottom: 1.5rem;">
+    <div class="wrap">
+      <div class="eyebrow reveal reveal-1">Presentation</div>
+      <h1 class="display reveal reveal-2" style="font-size: clamp(2rem, 6vw, 3.6rem);">
+        The <em>deck.</em>
+      </h1>
+      <p class="lede reveal reveal-3" style="margin-bottom: 1.5rem;">
+        The current project deck. Use the controls inside the embed to advance
+        slides, or pop it out into its own tab.
+      </p>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top: 1rem;">
+    <div class="wrap">
+      <div class="block-label"><span class="num">01</span> Live deck</div>
+
+      <!--
+        Self-hosted slide deck. The deck embeds the kiosk prototype on its
+        Demo slide; both live together in assets/deck/.
+      -->
+      <div class="deck-frame">
+        <iframe
+          src="assets/deck/NFCSlideDeck.html"
+          allowfullscreen
+          mozallowfullscreen
+          webkitallowfullscreen
+          title="Project slide deck">
+        </iframe>
+      </div>
+
+      <div class="deck-meta">
+        <div>Use <code>←</code> <code>→</code> to navigate slides. Press <code>F</code> for fullscreen.</div>
+        <div>
+          <a href="assets/deck/NFCSlideDeck.html" target="_blank" rel="noopener" class="btn btn-ghost" style="padding: 0.5rem 0.9rem; font-size: 0.7rem;">
+            Open in new tab <span class="arrow">↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap narrow prose">
+      <div class="block-label"><span class="num">02</span> Want more context?</div>
+      <p>
+        The deck is a snapshot of the current project state. For a fuller
+        write-up — the design values, the build, and what's coming next —
+        head to the about page.
+      </p>
+      <div class="btn-row" style="margin-top: 1.25rem;">
+        <a href="about.html" class="btn btn-primary">
+          Read about the project <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>© Lee Wylie · An NFC sharing project</div>
+    <div><a href="contact.html">Get in touch →</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

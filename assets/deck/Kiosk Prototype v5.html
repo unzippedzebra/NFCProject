@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>NFC Kiosk — v5</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Outfit:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Unbounded:wght@400;500;600;700;800&family=Red+Hat+Display:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Barlow+Condensed:wght@400;500;600;700;800&family=Josefin+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Figtree:wght@300;400;500;600;700;800&family=Work+Sans:wght@300;400;500;600;700&family=Epilogue:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap">
+<style>
+:root {
+  --bg: #FAFAF9;
+  --surface: #FFFFFF;
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-muted: #767676;
+  --accent: #2D6A4F;
+  --accent-light: #D8F3DC;
+  --accent-hover: #40916C;
+  --border: #E8E8E6;
+  --border-strong: #CFCFCC;
+  --border-focus: #2D6A4F;
+  --error: #D64045;
+  --error-light: #FDE8E8;
+  --success-light: #D8F3DC;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.07);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+  --focus-glow: rgba(45, 106, 79, 0.08);
+}
+
+/* ── Dark mode ─────────────────────────────────────────────────────── */
+body.dark {
+  --bg: #0E0E0E;
+  --surface: #181818;
+  --text-primary: #F0F0EE;
+  --text-secondary: #A8A8A5;
+  --text-muted: #6A6A68;
+  --accent: #0CB8A8;
+  --accent-light: rgba(12, 184, 168, 0.13);
+  --accent-hover: #0ECFBD;
+  --border: #2A2A28;
+  --border-strong: #3C3C3A;
+  --border-focus: #0CB8A8;
+  --error-light: rgba(214, 64, 69, 0.18);
+  --success-light: rgba(12, 184, 168, 0.13);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.4);
+  --focus-glow: rgba(12, 184, 168, 0.1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: background 0.25s, color 0.25s;
+}
+
+/* ── Status bar ─────────────────────────────────────────────────────── */
+.status-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  cursor: pointer;
+  padding: 0.4rem 0.5rem;
+  margin: -0.4rem -0.5rem;
+}
+.back-btn.visible { opacity: 1; pointer-events: all; }
+.back-btn svg { width: 14px; height: 14px; }
+.back-btn:active { opacity: 0.5; }
+
+.status-right { display: flex; align-items: center; gap: 0.6rem; }
+
+.nfc-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  background: var(--border);
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.nfc-pill.connected { background: var(--accent-light); color: var(--accent); }
+
+.battery-wrap { display: flex; align-items: center; gap: 0.3rem; }
+.battery-icon {
+  width: 22px; height: 11px;
+  border: 1.5px solid var(--text-muted);
+  border-radius: 2px;
+  position: relative;
+  display: flex; align-items: center; padding: 1.5px;
+}
+.battery-icon::after {
+  content: '';
+  position: absolute; right: -3.5px; top: 50%;
+  transform: translateY(-50%);
+  width: 2px; height: 5px;
+  background: var(--text-muted);
+  border-radius: 0 1px 1px 0;
+}
+.battery-fill { height: 100%; width: 70%; background: var(--accent); border-radius: 1px; }
+.battery-pct { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); }
+
+/* ── Screen container ───────────────────────────────────────────────── */
+.screen-container {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 1.25rem 0.5rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.screen {
+  display: none;
+  width: 100%;
+  max-width: 560px;
+  flex-direction: column;
+  animation: screenIn 0.22s ease-out;
+}
+.screen.active { display: flex; }
+
+/* welcome screen: vertically center its body content */
+#screen-welcome {
+  max-width: 660px;
+  flex: 1;
+  align-self: stretch;
+  justify-content: center;
+}
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Welcome ────────────────────────────────────────────────────────── */
+#screen-welcome { max-width: 660px; }
+
+.welcome-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+  justify-content: center;
+  padding: 0.5rem 0;
+  gap: 0;
+}
+
+.welcome-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.welcome-eyebrow::before,
+.welcome-eyebrow::after {
+  content: '';
+  display: block;
+  width: 24px; height: 1px;
+  background: var(--accent);
+  opacity: 0.4;
+}
+
+.welcome-big {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, min(4vw, 6.5vh), 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.1;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+.welcome-big em.tap-word {
+  font-style: normal;
+  color: var(--accent);
+  display: inline-block;
+  animation: tap-press 4.5s ease-in-out infinite;
+}
+body.anim-flash .welcome-big em.tap-word {
+  animation: tap-flash 4.5s ease-in-out infinite;
+}
+.welcome-big em.you-word {
+  font-style: normal;
+  color: var(--accent);
+  display: inline-block;
+  animation: you-echo 4.5s ease-in-out infinite;
+}
+.welcome-big em {
+  font-style: normal;
+  color: var(--accent);
+  display: inline-block;
+}
+/* tap: color drains — stays drained until you finishes receiving */
+@keyframes tap-press {
+  0%, 48%, 100% { transform: scale(1); filter: none; }
+  54% { transform: scale(0.90); filter: saturate(0.1) brightness(1.8); }
+  70% { transform: scale(1); filter: saturate(0.1) brightness(1.4); }
+  85% { transform: scale(1); filter: saturate(0.35) brightness(1.1); }
+  94% { transform: scale(1); filter: none; }
+}
+/* tap: flash variant */
+@keyframes tap-flash {
+  0%, 48%, 100% { transform: scale(1); filter: none; }
+  52% { transform: scale(0.93); filter: brightness(2.2) saturate(0.4); }
+  58% { transform: scale(0.89); filter: saturate(0.08) brightness(1.9); }
+  72% { transform: scale(1); filter: saturate(0.1) brightness(1.5); }
+  86% { transform: scale(1); filter: saturate(0.4) brightness(1.1); }
+  94% { transform: scale(1); filter: none; }
+}
+/* you: blooms and glows */
+@keyframes you-echo {
+  0%, 62%, 100% { transform: scale(1); filter: none; text-shadow: none; }
+  69% { transform: scale(1.12); filter: brightness(1.45) saturate(1.35); text-shadow: 0 0 24px currentColor; }
+  79% { transform: scale(1.03); filter: brightness(1.12); text-shadow: 0 0 10px currentColor; }
+  88% { transform: scale(1); filter: none; text-shadow: none; }
+}
+
+.welcome-type-body {
+  font-size: clamp(0.9rem, 1.8vw, 1rem);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 360px;
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+/* steps variant */
+.steps-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  margin-bottom: 2rem;
+  width: 100%;
+  max-width: 440px;
+}
+.step-item {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 0.5rem;
+  flex: 1;
+}
+.step-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+}
+.step-icon svg { width: 22px; height: 22px; }
+.step-connector {
+  flex: 0 0 28px; height: 1.5px;
+  background: var(--border); margin-top: 22px;
+  align-self: flex-start;
+}
+.step-label {
+  font-size: 0.8rem; font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center; line-height: 1.3; max-width: 68px;
+}
+
+/* nfc variant */
+.nfc-moment {
+  position: relative; width: 130px; height: 130px;
+  margin-bottom: 1.5rem;
+}
+.nfc-ring {
+  position: absolute; inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: 50%; opacity: 0;
+  animation: nfc-pulse 2.4s ease-out infinite;
+}
+.nfc-ring-2 { animation-delay: 0.6s; }
+.nfc-ring-3 { animation-delay: 1.2s; }
+.nfc-ring-4 { animation-delay: 1.8s; }
+@keyframes nfc-pulse {
+  0% { transform: scale(0.4); opacity: 0.7; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+.nfc-center {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+}
+.nfc-center svg { width: 52px; height: 52px; }
+
+/* shared prompt */
+.welcome-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0.65rem 1.35rem;
+  border: 1.5px solid var(--border);
+  border-radius: 99px;
+  animation: prompt-pulse 2s ease-in-out infinite;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.welcome-prompt:hover, .welcome-prompt:active {
+  border-color: var(--accent); color: var(--accent);
+}
+.welcome-prompt svg { width: 14px; height: 14px; }
+@keyframes prompt-pulse {
+  0%, 100% { opacity: 0.6; } 50% { opacity: 1; }
+}
+
+/* ── Platform select ────────────────────────────────────────────────── */
+#screen-select_platform { max-width: 700px; }
+
+.screen-header { margin-bottom: 0.75rem; }
+
+.screen-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 3vw, 1.65rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.15rem;
+}
+
+.screen-sub {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* Website + Missing row */
+.special-cards-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  justify-content: center;
+}
+
+.website-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.35rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+.website-card:active, .website-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  box-shadow: var(--shadow-md);
+}
+.website-card .card-icon {
+  width: 22px; height: 22px;
+  color: var(--accent);
+  flex-shrink: 0;
+  display: flex; align-items: center;
+}
+.website-card .card-icon svg { width: 22px; height: 22px; }
+.website-card .card-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.missing-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.35rem;
+  background: transparent;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+.missing-card:active, .missing-card.selected {
+  border-color: var(--accent);
+  border-style: solid;
+  background: var(--accent-light);
+}
+.missing-card .card-icon { width: 22px; height: 22px; color: var(--text-muted); display: flex; align-items: center; }
+.missing-card .card-icon svg { width: 22px; height: 22px; }
+.missing-card .card-label { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.missing-card:active .card-label, .missing-card.selected .card-label { color: var(--accent); }
+.missing-card:active .card-icon, .missing-card.selected .card-icon { color: var(--accent); }
+
+/* Platform grid */
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.platform-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.85rem 0.4rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  text-align: center;
+  min-height: 72px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.platform-card:active, .platform-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  box-shadow: var(--shadow-md);
+}
+.platform-card .platform-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+.platform-card .platform-icon img { width: 26px; height: 26px; display: block; }
+.platform-card .platform-icon svg { width: 26px; height: 26px; display: block; }
+.platform-card .platform-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  text-align: center;
+}
+.platform-card.selected .platform-name { color: var(--accent); font-weight: 600; }
+
+/* Snapchat: black ghost on yellow */
+.platform-card[data-platform="snapchat"] .platform-icon img {
+  background: #FFFC00;
+  border-radius: 5px;
+  padding: 2px;
+}
+
+/* Dark mode icon invert for black icons on light bg */
+body.dark .platform-card:not(.selected) .platform-icon img[src*="000000"],
+body.dark .platform-card:not(.selected) .platform-icon img[src*="181717"],
+body.dark .platform-card:not(.selected) .platform-icon img[src*="35465C"] {
+  filter: invert(1);
+}
+/* Snapchat stays on yellow even in dark mode — don't invert */
+body.dark .platform-card[data-platform="snapchat"] .platform-icon img {
+  filter: none;
+}
+
+/* ── Handle input — editorial layout ───────────────────────────────── */
+.handle-editorial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.handle-platform-editorial {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.handle-platform-bar {
+  width: 3px;
+  height: 1.6em;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.handle-platform-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.handle-confirm-hint {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.handle-url-prefix {
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.handle-input-area {
+  display: flex;
+  align-items: baseline;
+  min-height: 3rem;
+  padding: 0.25rem 0;
+}
+.handle-cursor-start {
+  display: inline-block;
+  width: 3px;
+  height: 1em;
+  background: var(--accent);
+  border-radius: 2px;
+  vertical-align: text-bottom;
+  margin-right: 6px;
+  flex-shrink: 0;
+  animation: blink 1s step-end infinite;
+}
+.handle-typed {
+  font-family: var(--font-body);
+  font-size: clamp(1.6rem, 4.5vw, 2.25rem);
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-all;
+  line-height: 1.2;
+}
+.handle-cursor-end {
+  display: inline-block;
+  width: 3px;
+  height: 1em;
+  background: var(--accent);
+  border-radius: 2px;
+  vertical-align: text-bottom;
+  margin-left: 3px;
+  flex-shrink: 0;
+  animation: blink 1s step-end infinite;
+}
+.handle-ghost {
+  font-family: var(--font-body);
+  font-size: clamp(1.6rem, 4.5vw, 2.25rem);
+  font-weight: 400;
+  color: var(--text-muted);
+  opacity: 0.55;
+  line-height: 1.2;
+}
+.handle-rule {
+  height: 1.5px;
+  background: var(--accent);
+  opacity: 0.3;
+  margin: 0.6rem 0 0.75rem;
+  border-radius: 1px;
+}
+.handle-url-line {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+.handle-url-line strong { color: var(--accent); font-weight: 500; }
+.handle-url-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.mode-toggle {
+  display: flex; gap: 0.35rem;
+  justify-content: flex-start;
+  margin-bottom: 0.85rem;
+}
+.mode-btn {
+  font-size: 0.825rem; font-weight: 500;
+  padding: 0.25rem 0.85rem;
+  border: 1.5px solid var(--border);
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer; transition: all 0.15s;
+  touch-action: manipulation;
+}
+.mode-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent); font-weight: 600;
+}
+
+/* ── Confirm + scan ─────────────────────────────────────────────────── */
+.confirm-url {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  word-break: break-all;
+  font-size: 1rem; font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+
+.scan-area { display: flex; flex-direction: column; align-items: center; }
+
+.scan-animation {
+  position: relative; width: 128px; height: 128px;
+  margin-bottom: 1.25rem;
+}
+.scan-ring {
+  position: absolute; inset: 0;
+  border: 2px solid var(--accent);
+  border-radius: 50%; opacity: 0;
+  animation: scan-pulse 2s ease-out infinite;
+}
+.ring-2 { animation-delay: 0.5s; }
+.ring-3 { animation-delay: 1s; }
+@keyframes scan-pulse {
+  0% { transform: scale(0.5); opacity: 0.6; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+.scan-icon {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+}
+.scan-icon svg { width: 52px; height: 52px; }
+.scan-label {
+  font-family: var(--font-display);
+  font-size: 1.25rem; font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em; margin-bottom: 0.25rem;
+}
+.scan-sub { font-size: 0.9rem; color: var(--text-muted); }
+
+/* ── Writing ────────────────────────────────────────────────────────── */
+.writing-indicator {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1rem;
+}
+.writing-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.writing-text {
+  font-family: var(--font-display);
+  font-size: 1.15rem; font-weight: 600;
+  color: var(--text-secondary); letter-spacing: -0.01em;
+}
+
+/* ── Results ────────────────────────────────────────────────────────── */
+.result-written-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.result-written-label::before {
+  content: '';
+  display: block;
+  width: 16px; height: 1.5px;
+  background: var(--accent);
+  opacity: 0.5;
+  border-radius: 1px;
+}
+.result-tagline-echo {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3.5vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  line-height: 1.15;
+  margin-bottom: 0.3rem;
+  text-align: center;
+}
+.result-url-hero {
+  font-size: clamp(0.8rem, 1.8vw, 0.95rem);
+  color: var(--accent);
+  font-weight: 600;
+  word-break: break-all;
+  margin-bottom: 1rem;
+  max-width: 400px;
+  text-align: center;
+  line-height: 1.4;
+}
+.result-center {
+  display: flex; flex-direction: column;
+  align-items: center; text-align: center;
+}
+.result-icon {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1rem;
+}
+.result-icon svg { width: 32px; height: 32px; }
+.result-success {
+  background: var(--success-light); color: var(--accent);
+  animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.result-error { background: var(--error-light); color: var(--error); }
+@keyframes popIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.result-title {
+  font-family: var(--font-display);
+  font-size: 1.7rem; font-weight: 700;
+  letter-spacing: -0.03em; color: var(--accent);
+  margin-bottom: 0.4rem;
+}
+.result-title-error { color: var(--error); }
+.result-message {
+  font-size: 1.05rem; color: var(--text-secondary);
+  line-height: 1.55; margin-bottom: 1.25rem; max-width: 320px;
+}
+.result-error-msg {
+  font-size: 1rem; color: var(--text-muted); margin-bottom: 1rem;
+}
+.nfc-diagram {
+  width: 320px;
+  margin-bottom: 1.25rem;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  padding: 0.75rem 0.75rem 0.65rem;
+}
+.nfc-diagram-svg { width: 100%; height: auto; display: block; }
+.nfc-diagram-svg .phone-body { fill: var(--bg); stroke: var(--border-strong); stroke-width: 2; }
+.nfc-diagram-svg .cam-module { fill: var(--border); stroke: var(--border-strong); stroke-width: 1; }
+.nfc-diagram-svg .lens { fill: var(--border-strong); }
+.nfc-diagram-svg .lens-sm { fill: var(--border-strong); opacity: 0.5; }
+.nfc-diagram-svg .side-btn { fill: var(--border-strong); }
+.nfc-diagram-svg .nfc-zone { fill: var(--accent); fill-opacity: 0.11; }
+.nfc-diagram-svg .nfc-zone-dash { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.nfc-diagram-svg .nfc-divider { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.nfc-diagram-svg .diag-label { fill: var(--text-secondary); font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: 0.06em; }
+.nfc-notes { display: flex; gap: 0.75rem; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
+.nfc-note { flex: 1; font-size: 0.72rem; color: var(--text-secondary); line-height: 1.45; text-align: center; }
+.nfc-note-head { display: block; font-weight: 700; font-size: 0.68rem; letter-spacing: 0.04em; color: var(--accent); margin-bottom: 0.15rem; }
+
+/* ── Hint bar ───────────────────────────────────────────────────────── */
+.hintbar {
+  padding: 0.5rem 1.25rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center;
+  justify-content: center;
+  gap: 1.25rem; flex-shrink: 0;
+  min-height: 2.75rem; flex-wrap: wrap;
+}
+.hint {
+  font-size: 0.875rem; color: var(--text-muted);
+  display: flex; align-items: center; gap: 0.3rem;
+}
+kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.5rem; height: 1.4rem;
+  padding: 0 0.35rem;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.78rem; font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* ── Proto nav ──────────────────────────────────────────────────────── */
+.proto-nav {
+  position: fixed; bottom: 3rem; right: 0.75rem;
+  display: flex; flex-direction: column;
+  gap: 0.3rem; z-index: 100;
+}
+.proto-nav button {
+  font-family: var(--font-body);
+  font-size: 0.7rem; font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer; transition: all 0.12s; text-align: right;
+  opacity: 0.85;
+}
+.proto-nav button:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+.proto-nav button.active { background: var(--accent); border-color: var(--accent); color: white; opacity: 1; }
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-height: 560px) {
+  .screen-container { padding-top: 2.25rem; }
+  .welcome-big { font-size: 2rem; }
+  .platform-grid { gap: 0.35rem; }
+  .platform-card { padding: 0.6rem 0.3rem; min-height: 58px; }
+  .scan-animation { width: 90px; height: 90px; }
+  .steps-row { margin-bottom: 1.25rem; }
+}
+@media (max-height: 440px) {
+  .welcome-type-body { display: none; }
+  .platform-grid { gap: 0.25rem; }
+}
+@media (max-width: 540px) {
+  .platform-grid { grid-template-columns: repeat(3, 1fr); }
+  .special-cards-row { flex-direction: column; align-items: stretch; }
+}
+@media (min-width: 900px) {
+  .platform-grid { grid-template-columns: repeat(5, 1fr); }
+  #screen-select_platform { max-width: 700px; }
+}
+
+/* ── Tweaks panel ───────────────────────────────────────────────────── */
+.tweaks-panel {
+  display: none; position: fixed;
+  bottom: 3rem; left: 0.75rem;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 1rem; z-index: 200; min-width: 210px;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+}
+.tweaks-panel.open { display: block; }
+.tweaks-title {
+  font-family: var(--font-display);
+  font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 0.75rem;
+}
+.tweak-group { margin-bottom: 0.85rem; }
+.tweak-label { font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem; }
+.tweak-options { display: flex; flex-direction: column; gap: 0.25rem; }
+.tweak-option {
+  font-size: 0.78rem; padding: 0.3rem 0.6rem;
+  border-radius: 6px; border: 1.5px solid var(--border);
+  background: var(--bg); color: var(--text-secondary);
+  cursor: pointer; transition: all 0.12s;
+  text-align: left; font-family: var(--font-body);
+}
+.tweak-option.active {
+  border-color: var(--accent); background: var(--accent-light);
+  color: var(--accent); font-weight: 600;
+}
+</style>
+</head>
+<body class="dark">
+
+<!-- Status bar -->
+<div class="status-bar">
+  <div class="back-btn" id="backBtn" onclick="handleBack()">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 12L6 8l4-4"/>
+    </svg>
+    Back
+  </div>
+  <div class="status-right">
+    <span class="nfc-pill connected">NFC</span>
+    <div class="battery-wrap">
+      <div class="battery-icon"><div class="battery-fill"></div></div>
+      <span class="battery-pct">70%</span>
+    </div>
+  </div>
+</div>
+
+<main class="screen-container">
+
+  <!-- WELCOME -->
+  <div class="screen active" id="screen-welcome">
+    <div class="welcome-body" id="welcomeBody"></div>
+  </div>
+
+  <!-- SELECT PLATFORM -->
+  <div class="screen" id="screen-select_platform">
+    <div class="screen-header">
+      <div class="screen-title">Choose a platform</div>
+      <div class="screen-sub">Arrow keys to navigate &nbsp;·&nbsp; Enter to select &nbsp;·&nbsp; or tap a card</div>
+    </div>
+    <div class="special-cards-row">
+      <div class="website-card" id="websiteCard" onclick="selectWebsite()">
+        <div class="card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.182 2.472a7 7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.072 2.472M3.82 11a13.7 13.7 0 0 1-.312-2.5h-2.49c.062.89.291 1.733.656 2.5zm6.853 3.472A7 7 0 0 0 13.745 12H11.91a9.3 9.3 0 0 1-.64 1.539 7 7 0 0 1-.597.933M8.5 12v2.923c.67-.204 1.335-.82 1.887-1.855q.26-.487.468-1.068zm3.68-1h2.146c.365-.767.594-1.61.656-2.5h-2.49a13.7 13.7 0 0 1-.312 2.5m2.802-3.5a7 7 0 0 0-.656-2.5H12.18c.174.782.282 1.623.312 2.5zM11.27 2.461c.247.464.462.98.64 1.539h1.835a7 7 0 0 0-3.072-2.472c.218.284.418.598.597.933M10.855 4a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077V4z"/>
+          </svg>
+        </div>
+        <div class="card-label">Website</div>
+      </div>
+      <div class="missing-card" id="missingCard" onclick="selectMissing()">
+        <div class="card-icon">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="8" r="6.5"/>
+            <path d="M8 11v-.5M8 5a1.5 1.5 0 0 1 .78 2.78C8.26 8.22 8 8.7 8 9.25"/>
+          </svg>
+        </div>
+        <div class="card-label">Something missing?</div>
+      </div>
+    </div>
+    <div class="platform-grid" id="platformGrid"></div>
+  </div>
+
+  <!-- INPUT HANDLE — editorial -->
+  <div class="screen" id="screen-input_handle">
+    <div class="handle-editorial-header">
+      <div class="handle-platform-editorial">
+        <div class="handle-platform-bar"></div>
+        <span class="handle-platform-title" id="handlePlatName">Instagram</span>
+      </div>
+      <span class="handle-confirm-hint">Enter to confirm</span>
+    </div>
+    <div class="mode-toggle" id="modeToggle" style="display:none"></div>
+    <div class="handle-url-prefix" id="handlePrefix">https://instagram.com/</div>
+    <div class="handle-input-area">
+      <span class="handle-cursor-start" id="handleCursorStart"></span>
+      <span id="handleSpan" class="handle-typed"></span>
+      <span class="handle-cursor-end" id="handleCursorEnd" style="display:none"></span>
+      <span id="handlePlaceholder" class="handle-ghost">your username</span>
+    </div>
+    <div class="handle-rule"></div>
+    <div class="handle-url-line">https://<span id="handlePrefixPath"></span><strong id="handleUrlPreview"></strong><span class="handle-url-blink" id="handleUrlCursor">_</span></div>
+  </div>
+
+  <!-- INPUT CUSTOM URL — editorial -->
+  <div class="screen" id="screen-input_custom_url">
+    <div class="handle-editorial-header">
+      <div class="handle-platform-editorial">
+        <div class="handle-platform-bar"></div>
+        <span class="handle-platform-title" id="customUrlTitle">Website</span>
+      </div>
+      <span class="handle-confirm-hint">Enter to confirm</span>
+    </div>
+    <div class="handle-url-prefix">https://</div>
+    <div class="handle-input-area">
+      <span class="handle-cursor-start" id="customUrlCursorStart"></span>
+      <span id="customUrlSpan" class="handle-typed"></span>
+      <span class="handle-cursor-end" id="customUrlCursorEnd" style="display:none"></span>
+      <span id="customUrlPlaceholder" class="handle-ghost">yoursite.com/path</span>
+    </div>
+    <div class="handle-rule"></div>
+    <div class="handle-url-line">https://<strong id="customUrlPreview"></strong><span class="handle-url-blink" id="customUrlBlink">_</span></div>
+  </div>
+
+  <!-- REQUEST PLATFORM — editorial -->
+  <div class="screen" id="screen-request_platform">
+    <div class="handle-editorial-header">
+      <div class="handle-platform-editorial">
+        <div class="handle-platform-bar"></div>
+        <span class="handle-platform-title">Something missing?</span>
+      </div>
+      <span class="handle-confirm-hint">Enter to continue</span>
+    </div>
+    <div class="handle-url-prefix">Platform name</div>
+    <div class="handle-input-area">
+      <span class="handle-cursor-start" id="requestCursorStart"></span>
+      <span id="requestSpan" class="handle-typed"></span>
+      <span class="handle-cursor-end" id="requestCursorEnd" style="display:none"></span>
+      <span id="requestPlaceholder" class="handle-ghost">e.g. BeReal, Kick...</span>
+    </div>
+    <div class="handle-rule"></div>
+    <div class="handle-url-line" style="font-style:italic;font-family:var(--font-body)">We'll note it down — you can still enter a custom link on the next screen.</div>
+  </div>
+
+  <!-- CONFIRM + SCAN -->
+  <div class="screen" id="screen-confirm_url">
+    <div class="screen-title" style="text-align:center;margin-bottom:0.75rem">Ready to write</div>
+    <div class="confirm-url" id="confirmUrl">https://instagram.com/example</div>
+    <div class="scan-area">
+      <div class="scan-animation">
+        <div class="scan-ring ring-1"></div>
+        <div class="scan-ring ring-2"></div>
+        <div class="scan-ring ring-3"></div>
+        <div class="scan-icon">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <rect x="10" y="10" width="28" height="28" rx="5"/>
+            <path d="M20 24h8M24 20v8"/>
+            <path d="M10 17V10h7M31 10h7v7M10 31v7h7M38 31v7h-7"/>
+          </svg>
+        </div>
+      </div>
+      <p class="scan-label">Place keychain on reader</p>
+      <p class="scan-sub">Don't pull it away until done</p>
+    </div>
+  </div>
+
+  <!-- WRITING -->
+  <div class="screen" id="screen-writing">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+      <div class="writing-indicator">
+        <div class="writing-spinner"></div>
+        <div class="writing-text">Writing to tag...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="screen" id="screen-success">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+      <div class="result-center">
+        <div class="result-icon result-success">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 24l8 8 15-16"/>
+          </svg>
+        </div>
+        <h2 class="result-written-label">Tag written</h2>
+        <div class="result-tagline-echo">Every tap leads back to</div>
+        <div class="result-url-hero" id="successUrl">https://instagram.com/yourhandle</div>
+        <p class="result-message">Your link is live. Give it a test drive — hold your keychain to a phone.</p>
+        <div class="nfc-diagram">
+          <svg class="nfc-diagram-svg" viewBox="0 0 300 134" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <clipPath id="ios-clip"><rect x="44" y="8" width="62" height="122" rx="13"/></clipPath>
+              <clipPath id="and-clip"><rect x="194" y="8" width="62" height="122" rx="8"/></clipPath>
+            </defs>
+            <rect class="phone-body" x="44" y="8" width="62" height="122" rx="13"/>
+            <rect class="cam-module" x="50" y="13" width="22" height="22" rx="6"/>
+            <circle class="lens" cx="55.5" cy="18.5" r="3.6"/>
+            <circle class="lens" cx="66" cy="18.5" r="3.6"/>
+            <circle class="lens" cx="55.5" cy="29" r="3.6"/>
+            <circle class="lens-sm" cx="66" cy="29.5" r="1.8"/>
+            <rect class="side-btn" x="106" y="48" width="3" height="15" rx="1.5"/>
+            <rect class="side-btn" x="41" y="44" width="3" height="7" rx="1.5"/>
+            <rect class="side-btn" x="41" y="55" width="3" height="11" rx="1.5"/>
+            <rect class="nfc-zone" x="44" y="8" width="62" height="37" clip-path="url(#ios-clip)"/>
+            <line class="nfc-divider" x1="44" y1="45" x2="106" y2="45"/>
+            <rect class="phone-body" x="194" y="8" width="62" height="122" rx="8"/>
+            <rect class="cam-module" x="199" y="12" width="14" height="42" rx="6"/>
+            <circle class="lens" cx="206" cy="20" r="4.2"/>
+            <circle class="lens" cx="206" cy="33" r="4.2"/>
+            <circle class="lens" cx="206" cy="46" r="3.2"/>
+            <circle class="lens-sm" cx="206" cy="56" r="1.8"/>
+            <rect class="side-btn" x="256" y="44" width="3" height="10" rx="1.5"/>
+            <rect class="side-btn" x="256" y="58" width="3" height="16" rx="1.5"/>
+            <rect class="side-btn" x="191" y="50" width="3" height="13" rx="1.5"/>
+            <rect class="nfc-zone" x="194" y="8" width="62" height="61" clip-path="url(#and-clip)"/>
+            <line class="nfc-divider" x1="194" y1="69" x2="256" y2="69"/>
+          </svg>
+          <div class="nfc-notes">
+            <div class="nfc-note"><span class="nfc-note-head">iPhone XR and above</span>Top</div>
+            <div class="nfc-note"><span class="nfc-note-head">Android</span>Top or center</div>
+          </div>
+        </div>
+        <div class="hint" style="gap:0.85rem">
+          <span style="display:flex;align-items:center;gap:0.35rem"><kbd>Enter</kbd> Done</span>
+          <span style="display:flex;align-items:center;gap:0.35rem"><kbd>R</kbd> Write another</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="screen" id="screen-error">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+      <div class="result-center">
+        <div class="result-icon result-error">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <path d="M15 15l18 18M33 15l-18 18"/>
+          </svg>
+        </div>
+        <h2 class="result-title result-title-error">Write failed.</h2>
+        <p class="result-error-msg">Something went wrong. Try again.</p>
+        <div class="hint" style="gap:0.85rem;margin-top:0.5rem">
+          <span style="display:flex;align-items:center;gap:0.35rem"><kbd>Enter</kbd> Retry</span>
+          <span style="display:flex;align-items:center;gap:0.35rem"><kbd>Esc</kbd> Start over</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="hintbar" id="hintBar"></div>
+<div class="proto-nav" id="protoNav"></div>
+
+<!-- Tweaks -->
+<div class="tweaks-panel" id="tweaksPanel">
+  <div class="tweaks-title">Tweaks</div>
+
+  <div class="tweak-group">
+    <div class="tweak-label">Welcome copy</div>
+    <div class="tweak-options">
+      <button class="tweak-option active" id="copy-opt-a" onclick="setCopyVariant('a')">A — Every tap leads back to you</button>
+      <button class="tweak-option" id="copy-opt-b" onclick="setCopyVariant('b')">B — Share with a tap</button>
+      <button class="tweak-option" id="copy-opt-c" onclick="setCopyVariant('c')">C — You tap to pay</button>
+    </div>
+  </div>
+
+  <div class="tweak-group">
+    <div class="tweak-label">Welcome layout</div>
+    <div class="tweak-options">
+      <button class="tweak-option active" id="layout-opt-type" onclick="setWelcomeLayout('type')">Bold type</button>
+      <button class="tweak-option" id="layout-opt-steps" onclick="setWelcomeLayout('steps')">Flow steps</button>
+      <button class="tweak-option" id="layout-opt-nfc" onclick="setWelcomeLayout('nfc')">NFC pulse</button>
+    </div>
+  </div>
+
+  <div class="tweak-group">
+    <div class="tweak-label">Transfer style</div>
+    <div class="tweak-options">
+      <button class="tweak-option active" id="anim-opt-drain" onclick="setAnimMode('drain')">Drain &amp; bloom</button>
+      <button class="tweak-option" id="anim-opt-flash" onclick="setAnimMode('flash')">Flash &amp; bloom</button>
+    </div>
+  </div>
+
+  <div class="tweak-group">
+    <div class="tweak-label">Period on "you"</div>
+    <div class="tweak-options" style="flex-direction:row;gap:0.4rem">
+      <button class="tweak-option active" id="period-opt-yes" onclick="setShowPeriod(true)" style="flex:1">you.</button>
+      <button class="tweak-option" id="period-opt-no" onclick="setShowPeriod(false)" style="flex:1">you</button>
+    </div>
+  </div>
+
+  <div class="tweak-group">
+    <div class="tweak-label">Display font</div>
+    <div class="tweak-options">
+      <button class="tweak-option" id="font-opt-Outfit" onclick="setDisplayFont('Outfit')">Outfit <span style="opacity:.4;font-weight:400">— geometric</span></button>
+      <button class="tweak-option" id="font-opt-Plus Jakarta Sans" onclick="setDisplayFont('Plus Jakarta Sans')">Plus Jakarta Sans <span style="opacity:.4;font-weight:400">— warm</span></button>
+      <button class="tweak-option" id="font-opt-Manrope" onclick="setDisplayFont('Manrope')">Manrope <span style="opacity:.4;font-weight:400">— refined grotesque</span></button>
+      <button class="tweak-option" id="font-opt-Josefin Sans" onclick="setDisplayFont('Josefin Sans')">Josefin Sans <span style="opacity:.4;font-weight:400">— tall &amp; geometric</span></button>
+      <button class="tweak-option" id="font-opt-Barlow Condensed" onclick="setDisplayFont('Barlow Condensed')">Barlow Condensed <span style="opacity:.4;font-weight:400">— tight &amp; efficient</span></button>
+      <button class="tweak-option" id="font-opt-Syne" onclick="setDisplayFont('Syne')">Syne <span style="opacity:.4;font-weight:400">— architectural</span></button>
+      <button class="tweak-option" id="font-opt-Playfair Display" onclick="setDisplayFont('Playfair Display')">Playfair Display <span style="opacity:.4;font-weight:400">— serif / editorial</span></button>
+      <button class="tweak-option" id="font-opt-Inter" onclick="setDisplayFont('Inter')">Inter <span style="opacity:.4;font-weight:400">— ubiquitous</span></button>
+      <button class="tweak-option" id="font-opt-Figtree" onclick="setDisplayFont('Figtree')">Figtree <span style="opacity:.4;font-weight:400">— rounded &amp; warm</span></button>
+      <button class="tweak-option" id="font-opt-Work Sans" onclick="setDisplayFont('Work Sans')">Work Sans <span style="opacity:.4;font-weight:400">— clean personality</span></button>
+      <button class="tweak-option" id="font-opt-Epilogue" onclick="setDisplayFont('Epilogue')">Epilogue <span style="opacity:.4;font-weight:400">— variable, subtle quirk</span></button>
+      <button class="tweak-option active" id="font-opt-DM Serif Display" onclick="setDisplayFont('DM Serif Display')">DM Serif Display <span style="opacity:.4;font-weight:400">— serif sibling of body</span></button>
+    </div>
+  </div>
+
+  <div class="tweak-group">
+    <div class="tweak-label">Appearance</div>
+    <div class="tweak-options" style="flex-direction:row;gap:0.4rem">
+      <button class="tweak-option" id="mode-light" onclick="setDarkMode(false)" style="flex:1">Light</button>
+      <button class="tweak-option active" id="mode-dark" onclick="setDarkMode(true)" style="flex:1">Dark</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Platforms ─────────────────────────────────────────────────────────
+const LINKEDIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.449-2.136 2.941v5.665H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`;
+
+const PLATFORMS = [
+  { name:"Instagram",   icon_slug:"instagram", brand_color:"E4405F", prefix:"https://instagram.com/",    hint:"your username" },
+  { name:"TikTok",      icon_slug:"tiktok",    brand_color:"000000", prefix:"https://tiktok.com/@",      hint:"your username" },
+  { name:"X / Twitter", icon_slug:"x",         brand_color:"000000", prefix:"https://x.com/",            hint:"your handle" },
+  { name:"YouTube",     icon_slug:"youtube",   brand_color:"FF0000", prefix:"https://youtube.com/@",
+    modes:[{label:"Channel",url_base:"https://youtube.com/@",hint:"channel handle"},{label:"Video",url_base:"https://youtu.be/",hint:"video ID"}] },
+  { name:"Snapchat",    icon_slug:"snapchat",  brand_color:"000000", prefix:"https://snapchat.com/add/", hint:"your username" },
+  { name:"LinkedIn",    icon_slug:"linkedin",  brand_color:"0A66C2", prefix:"https://linkedin.com/in/",  hint:"your username", icon_svg: LINKEDIN_SVG },
+  { name:"Facebook",    icon_slug:"facebook",  brand_color:"1877F2", prefix:"https://facebook.com/",
+    modes:[{label:"Profile / Page",url_base:"https://facebook.com/",hint:"username or page"},{label:"Group",url_base:"https://facebook.com/groups/",hint:"group name or ID"}] },
+  { name:"Twitch",      icon_slug:"twitch",    brand_color:"9146FF", prefix:"https://twitch.tv/",        hint:"your username" },
+  { name:"GitHub",      icon_slug:"github",    brand_color:"181717", prefix:"https://github.com/",       hint:"your username" },
+  { name:"Bluesky",     icon_slug:"bluesky",   brand_color:"0285FF", prefix:"https://bsky.app/profile/", hint:"your handle" },
+  { name:"Threads",     icon_slug:"threads",   brand_color:"000000", prefix:"https://threads.net/@",     hint:"your username" },
+  { name:"WhatsApp",    icon_slug:"whatsapp",  brand_color:"25D366", prefix:"https://wa.me/",
+    modes:[{label:"Personal",url_base:"https://wa.me/",hint:"phone number"},{label:"Group",url_base:"https://chat.whatsapp.com/",hint:"invite code"}] },
+  { name:"Tumblr",      icon_slug:"tumblr",    brand_color:"35465C", prefix:"https://tumblr.com/",       hint:"your username" },
+  { name:"Telegram",    icon_slug:"telegram",  brand_color:"26A5E4", prefix:"https://t.me/",
+    modes:[{label:"Personal / Channel",url_base:"https://t.me/",hint:"your username"},{label:"Group invite",url_base:"https://t.me/+",hint:"invite code"}] },
+  { name:"Discord",     icon_slug:"discord",   brand_color:"5865F2", prefix:"https://discord.gg/",       hint:"invite code" },
+];
+
+// ── State ─────────────────────────────────────────────────────────────
+const SCREENS = ["welcome","select_platform","input_handle","input_custom_url","request_platform","confirm_url","writing","success","error"];
+let currentScreen = "welcome";
+let selectedIndex = 0;
+let handleText = "";
+let customUrlText = "";
+let requestText = "";
+let chosenPlatform = PLATFORMS[0];
+let currentMode = 0;
+let welcomeLayout = localStorage.getItem('welcomeLayout') || 'type';
+let copyVariant = localStorage.getItem('copyVariant') || 'a';
+let isDark = localStorage.getItem('isDark') !== null ? localStorage.getItem('isDark') === 'true' : true;
+let displayFont = localStorage.getItem('displayFont') || 'DM Serif Display';
+let animMode = localStorage.getItem('animMode') || 'drain';
+let showPeriod = localStorage.getItem('showPeriod') !== 'false';
+let comingFromMissing = false;
+
+// ── Copy variants ─────────────────────────────────────────────────────
+const copyVariants = {
+  a: { big: ['Every <em class="tap-word">tap</em>', 'leads back', 'to <em class="you-word">you.</em>'], sub: 'You tap to pay. Now tap to share.' },
+  b: { big: ['Share', 'with a', '<em class="tap-word">tap.</em>'], sub: 'Every tap leads back to you.' },
+  c: { big: ['You tap to pay.', 'Now <em class="tap-word">tap</em>', 'to share.'], sub: 'Every tap leads back to you.' },
+};
+
+function getVariantBig(cv) {
+  if (cv === copyVariants.a) {
+    return ['Every <em class="tap-word">tap</em>', 'leads back',
+      `to <em class="you-word">you${showPeriod ? '.' : ''}</em>`];
+  }
+  return cv.big;
+}
+
+function buildWelcomeType() {
+  const cv = copyVariants[copyVariant];
+  const big = getVariantBig(cv);
+  return `
+    <div class="welcome-eyebrow">NFC Keychain Writer</div>
+    <h1 class="welcome-big">${big.join('<br>')}</h1>
+    <p class="welcome-type-body">${cv.sub}</p>
+    <div class="welcome-prompt" onclick="startFlow()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+      Press Enter to begin
+    </div>`;
+}
+
+function buildWelcomeSteps() {
+  const cv = copyVariants[copyVariant];
+  const big = getVariantBig(cv);
+  return `
+    <h1 class="welcome-big" style="font-size:clamp(2.2rem,6vw,3.5rem);margin-bottom:0.5rem">${big.join(' ')}</h1>
+    <p class="welcome-type-body">${cv.sub}</p>
+    <div class="steps-row">
+      <div class="step-item">
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+        <div class="step-label">Pick a platform</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item">
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10"/><path d="M18 15l3 3-3 3"/></svg></div>
+        <div class="step-label">Type your handle</div>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item">
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 12h3m0 0V9m0 3v3"/></svg></div>
+        <div class="step-label">Tap your keychain</div>
+      </div>
+    </div>
+    <div class="welcome-prompt" onclick="startFlow()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+      Press Enter to begin
+    </div>`;
+}
+
+function buildWelcomeNfc() {
+  const cv = copyVariants[copyVariant];
+  const big = getVariantBig(cv);
+  return `
+    <div class="nfc-moment">
+      <div class="nfc-ring nfc-ring-1"></div><div class="nfc-ring nfc-ring-2"></div>
+      <div class="nfc-ring nfc-ring-3"></div><div class="nfc-ring nfc-ring-4"></div>
+      <div class="nfc-center">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="10" y="10" width="28" height="28" rx="5"/><path d="M18 24h5m0 0v-5m0 5v5m0-5h5"/><path d="M10 19v-9h9M29 10h9v9M10 29v9h9M38 29v9h-9"/></svg>
+      </div>
+    </div>
+    <h1 class="welcome-big" style="font-size:clamp(2.4rem,7vw,3.8rem);margin-bottom:0.6rem">${big.join(' ')}</h1>
+    <p class="welcome-type-body">${cv.sub}</p>
+    <div class="welcome-prompt" onclick="startFlow()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+      Press Enter to begin
+    </div>`;
+}
+
+function renderWelcome() {
+  const body = document.getElementById('welcomeBody');
+  if (welcomeLayout === 'steps') body.innerHTML = buildWelcomeSteps();
+  else if (welcomeLayout === 'nfc') body.innerHTML = buildWelcomeNfc();
+  else body.innerHTML = buildWelcomeType();
+}
+
+// ── Build platform grid ───────────────────────────────────────────────
+const grid = document.getElementById("platformGrid");
+grid.innerHTML = PLATFORMS.map((p, i) => {
+  const iconHtml = p.icon_svg
+    ? `<div style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;">${p.icon_svg}</div>`
+    : `<img src="https://cdn.simpleicons.org/${p.icon_slug}/${p.brand_color}" alt="${p.name}" loading="lazy">`;
+  return `<div class="platform-card${i===0?' selected':''}" data-platform="${p.icon_slug}" data-index="${i}" onclick="touchSelectPlatform(${i})">
+    <div class="platform-icon">${iconHtml}</div>
+    <div class="platform-name">${p.name}</div>
+  </div>`;
+}).join("");
+
+// ── Screen management ─────────────────────────────────────────────────
+function showScreen(name) {
+  currentScreen = name;
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  const el = document.getElementById(`screen-${name}`);
+  if (el) el.classList.add("active");
+  updateHints(name);
+  updateProtoNav();
+  const backScreens = ['select_platform','input_handle','input_custom_url','request_platform','confirm_url'];
+  document.getElementById('backBtn').classList.toggle('visible', backScreens.includes(name));
+}
+
+function handleBack() {
+  const map = {
+    select_platform: 'welcome',
+    input_handle: 'select_platform',
+    input_custom_url: comingFromMissing ? 'request_platform' : 'select_platform',
+    request_platform: 'select_platform',
+    confirm_url: selectedIndex <= -1 ? 'input_custom_url' : 'input_handle',
+  };
+  if (map[currentScreen]) showScreen(map[currentScreen]);
+}
+
+function startFlow() {
+  selectedIndex = 0;
+  updateSelection();
+  showScreen("select_platform");
+}
+
+function selectWebsite() {
+  selectedIndex = -1;
+  comingFromMissing = false;
+  updateSelection();
+  handleText = ""; customUrlText = "";
+  document.getElementById('customUrlTitle').textContent = 'Website';
+  updateCustomUrlScreen();
+  showScreen("input_custom_url");
+}
+
+function selectMissing() {
+  selectedIndex = -2;
+  updateSelection();
+  requestText = "";
+  updateRequestScreen();
+  showScreen("request_platform");
+}
+
+function touchSelectPlatform(i) {
+  selectedIndex = i;
+  updateSelection();
+  handleText = ""; currentMode = 0;
+  chosenPlatform = PLATFORMS[i];
+  updateHandleScreen();
+  showScreen("input_handle");
+}
+
+// ── Hints ─────────────────────────────────────────────────────────────
+const hints = {
+  welcome: '<div class="hint"><kbd>Enter</kbd> Start</div>',
+  select_platform: '<div class="hint"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> Navigate</div><div class="hint"><kbd>Enter</kbd> Select</div><div class="hint"><kbd>Esc</kbd> Back</div>',
+  input_handle: '<div class="hint">Type handle</div><div class="hint"><kbd>Enter</kbd> Confirm</div><div class="hint"><kbd>Tab</kbd> Switch mode</div><div class="hint"><kbd>Esc</kbd> Back</div>',
+  input_custom_url: '<div class="hint">Type URL</div><div class="hint"><kbd>Enter</kbd> Confirm</div><div class="hint"><kbd>Esc</kbd> Back</div>',
+  request_platform: '<div class="hint">Type platform name</div><div class="hint"><kbd>Enter</kbd> Next</div><div class="hint"><kbd>Esc</kbd> Back</div>',
+  confirm_url: '<div class="hint"><kbd>Space</kbd> Simulate write</div><div class="hint"><kbd>Esc</kbd> Cancel</div>',
+  writing: '<div class="hint">Writing...</div>',
+  success: '<div class="hint"><kbd>Enter</kbd> Done</div><div class="hint"><kbd>R</kbd> Write another</div>',
+  error: '<div class="hint"><kbd>Enter</kbd> Retry</div><div class="hint"><kbd>Esc</kbd> Start over</div>',
+};
+function updateHints(s) { document.getElementById("hintBar").innerHTML = hints[s] || ""; }
+
+// ── Proto nav ─────────────────────────────────────────────────────────
+const navLabels = {welcome:"Welcome",select_platform:"Platforms",input_handle:"Handle",input_custom_url:"Custom URL",request_platform:"Missing?",confirm_url:"Scan",writing:"Writing",success:"Success",error:"Error"};
+const protoNav = document.getElementById("protoNav");
+SCREENS.forEach(s => {
+  const btn = document.createElement("button");
+  btn.textContent = navLabels[s];
+  btn.addEventListener("click", () => showScreen(s));
+  protoNav.appendChild(btn);
+});
+function updateProtoNav() {
+  protoNav.querySelectorAll("button").forEach((btn, i) => {
+    btn.classList.toggle("active", SCREENS[i] === currentScreen);
+  });
+}
+
+// ── Platform selection highlight ──────────────────────────────────────
+function updateSelection() {
+  document.getElementById("websiteCard").classList.toggle("selected", selectedIndex === -1);
+  document.getElementById("missingCard").classList.toggle("selected", selectedIndex === -2);
+  grid.querySelectorAll(".platform-card").forEach((card, i) => {
+    card.classList.toggle("selected", i === selectedIndex);
+  });
+}
+
+// ── Handle screen ─────────────────────────────────────────────────────
+function getCurrentPrefix() {
+  const p = chosenPlatform;
+  return p.modes ? p.modes[currentMode].url_base : p.prefix;
+}
+function getHint() {
+  const p = chosenPlatform;
+  return (p.modes ? p.modes[currentMode].hint : p.hint) || 'your handle';
+}
+
+function updateHandleScreen() {
+  const p = chosenPlatform;
+  const prefix = getCurrentPrefix();
+  document.getElementById("handlePlatName").textContent = p.name;
+  document.getElementById("handlePrefix").textContent = prefix;
+  const span = document.getElementById("handleSpan");
+  const ph = document.getElementById("handlePlaceholder");
+  const cursorStart = document.getElementById("handleCursorStart");
+  const cursorEnd = document.getElementById("handleCursorEnd");
+  span.textContent = handleText;
+  ph.textContent = getHint();
+  const isEmpty = handleText.length === 0;
+  ph.style.display = isEmpty ? "" : "none";
+  cursorStart.style.display = isEmpty ? "" : "none";
+  cursorEnd.style.display = isEmpty ? "none" : "";
+  document.getElementById("handlePrefixPath").textContent = prefix.replace('https://', '');
+  document.getElementById("handleUrlPreview").textContent = handleText;
+  const toggleEl = document.getElementById("modeToggle");
+  if (p.modes && p.modes.length > 1) {
+    toggleEl.style.display = "flex";
+    toggleEl.innerHTML = p.modes.map((m, i) =>
+      `<button class="mode-btn${i===currentMode?' active':''}" onclick="setMode(${i})">${m.label}</button>`
+    ).join("");
+  } else {
+    toggleEl.style.display = "none";
+  }
+}
+function setMode(i) { currentMode = i; updateHandleScreen(); }
+
+// ── Custom URL screen ─────────────────────────────────────────────────
+function updateCustomUrlScreen() {
+  const span = document.getElementById('customUrlSpan');
+  const ph = document.getElementById('customUrlPlaceholder');
+  const cStart = document.getElementById('customUrlCursorStart');
+  const cEnd = document.getElementById('customUrlCursorEnd');
+  const preview = document.getElementById('customUrlPreview');
+  const blink = document.getElementById('customUrlBlink');
+  span.textContent = customUrlText;
+  const empty = customUrlText.length === 0;
+  ph.style.display = empty ? '' : 'none';
+  cStart.style.display = empty ? '' : 'none';
+  cEnd.style.display = empty ? 'none' : '';
+  preview.textContent = customUrlText;
+  if (blink) blink.style.display = empty ? '' : 'none';
+}
+
+// ── Request platform screen ───────────────────────────────────────────
+function updateRequestScreen() {
+  const span = document.getElementById('requestSpan');
+  const ph = document.getElementById('requestPlaceholder');
+  const cStart = document.getElementById('requestCursorStart');
+  const cEnd = document.getElementById('requestCursorEnd');
+  span.textContent = requestText;
+  const empty = requestText.length === 0;
+  ph.style.display = empty ? '' : 'none';
+  cStart.style.display = empty ? '' : 'none';
+  cEnd.style.display = empty ? 'none' : '';
+}
+
+// ── Keyboard handler ──────────────────────────────────────────────────
+document.addEventListener("keydown", (e) => {
+  const cols = getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length;
+
+  switch (currentScreen) {
+    case "welcome":
+      if (e.key === "Enter") { e.preventDefault(); startFlow(); }
+      break;
+
+    case "select_platform":
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        if (selectedIndex === -2) { selectedIndex = -1; }
+        else if (selectedIndex === -1) { selectedIndex = 0; }
+        else if (selectedIndex < PLATFORMS.length - 1) selectedIndex++;
+        updateSelection();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (selectedIndex > 0) selectedIndex--;
+        else if (selectedIndex === 0) selectedIndex = -1;
+        else if (selectedIndex === -1) selectedIndex = -2;
+        updateSelection();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (selectedIndex < 0) selectedIndex = 0;
+        else if (selectedIndex + cols < PLATFORMS.length) selectedIndex += cols;
+        updateSelection();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (selectedIndex - cols >= 0) selectedIndex -= cols;
+        else if (selectedIndex >= 0) selectedIndex = -1;
+        else if (selectedIndex === -1) selectedIndex = -2;
+        updateSelection();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        handleText = ""; currentMode = 0;
+        if (selectedIndex === -2) { selectMissing(); }
+        else if (selectedIndex === -1) { selectWebsite(); }
+        else { chosenPlatform = PLATFORMS[selectedIndex]; updateHandleScreen(); showScreen("input_handle"); }
+      } else if (e.key === "Escape") { e.preventDefault(); showScreen("welcome"); }
+      break;
+
+    case "input_handle":
+      if (e.key === "Escape") { e.preventDefault(); showScreen("select_platform"); }
+      else if (e.key === "Enter") {
+        e.preventDefault();
+        if (handleText.length > 0) {
+          document.getElementById("confirmUrl").textContent = getCurrentPrefix() + handleText;
+          showScreen("confirm_url");
+        }
+      } else if (e.key === "Backspace") { e.preventDefault(); handleText = handleText.slice(0, -1); updateHandleScreen(); }
+      else if (e.key === "Tab") { e.preventDefault(); if (chosenPlatform.modes) { currentMode = (currentMode + 1) % chosenPlatform.modes.length; updateHandleScreen(); } }
+      else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); handleText += e.key; updateHandleScreen(); }
+      break;
+
+    case "input_custom_url":
+      if (e.key === "Escape") { e.preventDefault(); showScreen(comingFromMissing ? "request_platform" : "select_platform"); }
+      else if (e.key === "Enter") {
+        e.preventDefault();
+        if (customUrlText.length > 0) {
+          document.getElementById("confirmUrl").textContent = "https://" + customUrlText;
+          showScreen("confirm_url");
+        }
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        customUrlText = customUrlText.slice(0, -1);
+        updateCustomUrlScreen();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        customUrlText += e.key;
+        updateCustomUrlScreen();
+      }
+      break;
+
+    case "request_platform":
+      if (e.key === "Escape") { e.preventDefault(); showScreen("select_platform"); }
+      else if (e.key === "Enter") {
+        e.preventDefault();
+        if (requestText.length > 0) {
+          comingFromMissing = true;
+          customUrlText = "";
+          document.getElementById('customUrlTitle').textContent = requestText;
+          updateCustomUrlScreen();
+          showScreen("input_custom_url");
+        }
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        requestText = requestText.slice(0, -1);
+        updateRequestScreen();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        requestText += e.key;
+        updateRequestScreen();
+      }
+      break;
+
+    case "confirm_url":
+      if (e.key === "Escape") { e.preventDefault(); showScreen(selectedIndex <= -1 ? "input_custom_url" : "input_handle"); }
+      else if (e.key === " ") {
+        e.preventDefault();
+        document.getElementById("successUrl").textContent = document.getElementById("confirmUrl").textContent;
+        showScreen("writing");
+        setTimeout(() => showScreen("success"), 1100);
+      }
+      break;
+
+    case "success":
+      if (e.key === "Enter") { e.preventDefault(); showScreen("welcome"); }
+      else if (e.key.toLowerCase() === "r") { e.preventDefault(); handleText = ""; customUrlText = ""; comingFromMissing = false; showScreen("select_platform"); }
+      break;
+
+    case "error":
+      if (e.key === "Enter") { e.preventDefault(); showScreen("confirm_url"); }
+      else if (e.key === "Escape") { e.preventDefault(); showScreen("welcome"); }
+      break;
+  }
+});
+
+// ── Tweaks ────────────────────────────────────────────────────────────
+function setCopyVariant(v) {
+  copyVariant = v;
+  localStorage.setItem('copyVariant', v);
+  renderWelcome();
+  ['a','b','c'].forEach(x => document.getElementById(`copy-opt-${x}`).classList.toggle('active', x === v));
+}
+
+function setWelcomeLayout(v) {
+  welcomeLayout = v;
+  localStorage.setItem('welcomeLayout', v);
+  renderWelcome();
+  ['type','steps','nfc'].forEach(x => document.getElementById(`layout-opt-${x}`).classList.toggle('active', x === v));
+}
+
+function setDisplayFont(f) {
+  displayFont = f;
+  localStorage.setItem('displayFont', f);
+  document.documentElement.style.setProperty('--font-display', `'${f}', serif`);
+  document.querySelectorAll('[id^="font-opt-"]').forEach(el => {
+    el.classList.toggle('active', el.id === `font-opt-${f}`);
+  });
+}
+
+function setAnimMode(m) {
+  animMode = m;
+  localStorage.setItem('animMode', m);
+  document.body.classList.toggle('anim-flash', m === 'flash');
+  renderWelcome();
+  document.getElementById('anim-opt-drain').classList.toggle('active', m === 'drain');
+  document.getElementById('anim-opt-flash').classList.toggle('active', m === 'flash');
+}
+
+function setShowPeriod(v) {
+  showPeriod = v;
+  localStorage.setItem('showPeriod', v);
+  renderWelcome();
+  document.getElementById('period-opt-yes').classList.toggle('active', v);
+  document.getElementById('period-opt-no').classList.toggle('active', !v);
+}
+
+function setDarkMode(dark) {
+  isDark = dark;
+  localStorage.setItem('isDark', dark);
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('mode-light').classList.toggle('active', !dark);
+  document.getElementById('mode-dark').classList.toggle('active', dark);
+}
+
+const tweaksPanel = document.getElementById('tweaksPanel');
+window.addEventListener('message', (e) => {
+  if (e.data?.type === '__activate_edit_mode') tweaksPanel.classList.add('open');
+  if (e.data?.type === '__deactivate_edit_mode') tweaksPanel.classList.remove('open');
+});
+window.parent.postMessage({type: '__edit_mode_available'}, '*');
+
+// ── Init ──────────────────────────────────────────────────────────────
+if (isDark) document.body.classList.add('dark');
+else document.body.classList.remove('dark');
+if (animMode === 'flash') document.body.classList.add('anim-flash');
+document.documentElement.style.setProperty('--font-display', `'${displayFont}', serif`);
+
+renderWelcome();
+updateHints("welcome");
+updateProtoNav();
+</script>
+</body>
+</html>
