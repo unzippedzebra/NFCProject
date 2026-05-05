@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Every tap leads back to you — an NFC sharing project</title>
+  <meta name="description" content="A privacy-first, portable NFC kiosk that writes social profile URLs to keychains so people you meet can follow you with a single tap.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span><span class="mark">◉</span> every tap</span>
+      <span class="meta">an nfc sharing project</span>
+    </a>
+    <nav>
+      <ul>
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="deck.html">Slide Deck</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="tap-mark" aria-hidden="true">
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="core"></div>
+      </div>
+
+      <div class="reveal reveal-1">
+        <div class="eyebrow">An NFC project · privacy-by-design</div>
+      </div>
+
+      <h1 class="display reveal reveal-2">
+        Every tap<br>
+        leads <em>back to you.</em>
+      </h1>
+
+      <p class="lede reveal reveal-3">
+        A portable kiosk that writes your social profile to an NFC keychain in
+        seconds — so the people you meet at events can follow you with a
+        single tap of their phone. No app. No cloud. No data trail.
+      </p>
+
+      <div class="btn-row reveal reveal-4">
+        <a href="about.html" class="btn btn-primary">
+          Read about the project <span class="arrow">→</span>
+        </a>
+        <a href="deck.html" class="btn btn-ghost">
+          View the deck <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="block-label"><span class="num">01</span> What it is</div>
+      <h2 class="section-title">A small, supervised station for trading follows in the physical world.</h2>
+
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="ic">// privacy</div>
+          <h3>Nothing is logged.</h3>
+          <p>Your URL is held in memory just long enough to write it to a tag, then discarded. No accounts, no analytics, no trail.</p>
+        </div>
+        <div class="feature">
+          <div class="ic">// offline</div>
+          <h3>No internet required.</h3>
+          <p>The kiosk runs entirely on a Raspberry Pi at the table. It writes tags whether the venue Wi-Fi works or not.</p>
+        </div>
+        <div class="feature">
+          <div class="ic">// universal</div>
+          <h3>Tap-to-follow, like tap-to-pay.</h3>
+          <p>The recipient taps the keychain to their phone — no app install, no QR scan. The link opens. They follow.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap narrow">
+      <div class="block-label"><span class="num">02</span> Status</div>
+      <h2 class="section-title">In active development.</h2>
+      <p>
+        The project began as an Arduino prototype with a character LCD and has
+        since grown into a Raspberry Pi 4 system with a screen-based interface,
+        USB keyboard input, and a USB PN532 NFC reader.
+      </p>
+      <p>
+        Phase 2 — the web UI running in Chromium kiosk mode — is currently
+        being wired up. Hardware decisions and accessibility refinement are
+        in flight.
+      </p>
+      <div class="btn-row" style="margin-top: 1.5rem;">
+        <a href="about.html" class="btn btn-ghost">
+          More on the project <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>© Lee Wylie · An NFC sharing project</div>
+    <div><a href="contact.html">Get in touch →</a></div>
+  </div>
+</footer>
+
+</body>
+</html>
